@@ -1,0 +1,276 @@
+TASK 1
+-- Creating the database
+create database child_poverty_db;
+
+USE child_poverty_db
+
+
+-- creating labelling tables for reference from the dictionary
+Create table country_info(value varchar(10),name varchar(80));
+INSERT INTO country_info (value, name) VALUES ('ET', 'Ethiopia'), ('IN', 'India'), ('PE', 'Peru'), ('VN', 'Vietnam');
+
+Create table cohort_info(value float,name varchar(40));
+INSERT INTO cohort_info(value,name) values (1,'Younger Cohort'),(0,'Older Cohort');
+
+
+Create table drug_info (value float,name varchar(80));
+INSERT INTO drug_info (value, name) VALUES (1, 'Every day'), (2, 'At least once a week'), (3, 'At least once a month'), (4, 'Hardly ever'), (5, 'I never smoke cigarettes');
+
+
+Create table readingLevel_info(value float,name varchar(80));
+
+INSERT INTO readingLevel_info (value, name) VALUES (1, 'cant read anything'), (2, 'reads letters'), (3, 'reads word'), (4, 'reads sentence'), (79, 'Refused to answer');
+
+
+CREATE TABLE underweight_details (Value float, Label nvarchar(100));
+INSERT INTO underweight_details (Value, Label) VALUES (0, 'not underweight'), (1, 'moderately underweight'), (2, 'severely underweight');
+
+
+CREATE TABLE stunting_info (Value float, Label nvarchar(140));
+INSERT INTO stunting_info(Value, Label) VALUES (0, 'not stunted'), (1, 'moderately stunted'), (2, 'severely stunted');
+
+
+
+-- cleaning Messy data
+delete from india where childid = 'childid';
+
+
+CREATE procedure create_children_info  AS
+BEGIN
+		BEGIN TRANSACTION
+			create table children_info(childid varchar(40) primary key,cohort float,chsex float ,chlang float,chethnic float, country varchar(40))
+
+			INSERT INTO children_info (childid, cohort, chsex,chlang, chethnic) select childid, yc, chsex,chlang, chethnic from (select childid, yc, chsex,chlang, chethnic from ethiopia
+			UNION ALL
+			select childid, yc, chsex,chlang, chethnic from peru
+			UNION ALL
+			select childid, yc, chsex,chlang, chethnic from india
+			UNION ALL
+			select childid, yc, chsex,chlang, chethnic from vietnam) a group by childid, yc, chsex,chlang, chethnic;
+
+			update children_info set country=left(childid,2);
+
+		COMMIT TRANSACTION
+END
+Go
+
+exec create_children_info;
+Go
+
+select count(*) from children_info;
+
+
+
+
+
+CREATE procedure create_survey_details  AS
+BEGIN
+		BEGIN TRANSACTION
+
+			CREATE TABLE survey_details(childid varchar(40),cohort float,survey_round_id float,inround float,deceased nvarchar(255),region float,childloc float, PRIMARY KEY (childid, survey_round_id),FOREIGN KEY (childid) REFERENCES children_info(childid));
+
+			INSERT INTO survey_details select childid, yc, [round], inround, deceased, region, childloc from
+				(select childid, yc, [round], inround, deceased, region, childloc from ethiopia
+				UNION ALL
+				select childid, yc, [round], inround, deceased, region, childloc from peru
+				UNION ALL
+				select childid, yc, [round], inround, deceased, region, childloc from india
+				UNION ALL
+				select childid, yc, [round], inround, deceased, region, childloc from vietnam)a;
+
+
+		COMMIT TRANSACTION
+END
+Go
+
+exec create_survey_details;
+Go
+
+
+
+
+
+CREATE procedure create_child_drug_details  AS
+BEGIN
+		BEGIN TRANSACTION			
+
+			create table child_drug_details(childid varchar(40),survey_round_id float,chsmoke float,chalcohol float, chrephealth1 float, chrephealth2 float, chrephealth3 float, chrephealth4 float, PRIMARY KEY (childid,survey_round_id),FOREIGN KEY (childid) REFERENCES children_info(childid));
+
+			INSERT INTO child_drug_details select childid, [round],chsmoke,chalcohol, chrephealth1, chrephealth2, chrephealth3, chrephealth4 from (select childid, [round], chsmoke,chalcohol, chrephealth1, chrephealth2, chrephealth3, chrephealth4 from ethiopia
+			UNION ALL
+			select childid, [round], chsmoke,chalcohol, chrephealth1, chrephealth2, chrephealth3, chrephealth4 from peru
+			UNION ALL
+			select childid, [round], chsmoke,chalcohol, chrephealth1, chrephealth2, chrephealth3, chrephealth4 from india
+			UNION ALL
+			select childid, [round], chsmoke,chalcohol, chrephealth1, chrephealth2, chrephealth3, chrephealth4 from vietnam) a;
+
+		COMMIT TRANSACTION
+END
+Go
+
+exec create_child_drug_details;
+Go
+
+
+
+
+CREATE procedure create_eduLevel_info  AS
+BEGIN
+		BEGIN TRANSACTION			
+
+			create table eduLevel_info(childid varchar(40),survey_round_id float,levlread float,levlwrit float, literate float, PRIMARY KEY (childid,survey_round_id),FOREIGN KEY (childid) REFERENCES children_info(childid));
+
+
+			INSERT INTO eduLevel_info select childid, [round],levlread,levlwrit,literate from (select childid, [round], levlread,levlwrit,literate from ethiopia
+			UNION ALL
+			select childid, [round], levlread,levlwrit,literate from peru
+			UNION ALL
+			select childid, [round], levlread,levlwrit,literate from india
+			UNION ALL
+			select childid, [round], levlread,levlwrit,literate from vietnam) a;
+
+		COMMIT TRANSACTION
+END
+Go
+
+exec create_eduLevel_info;
+Go
+
+
+
+
+CREATE procedure create_child_vaccination_details  AS
+BEGIN
+		BEGIN TRANSACTION			
+			create table child_vaccination_details(childid varchar(40),survey_round_id float,tetanus float,bcg float,measles float,dpt float,polio float PRIMARY KEY (childid,survey_round_id),FOREIGN KEY(childid) REFERENCES children_info(childid));
+
+
+			INSERT INTO child_vaccination_details select childid, [round], tetanus,bcg,measles,dpt,polio from (select childid, [round], tetanus,bcg,measles,dpt,polio from ethiopia
+			UNION ALL
+			select childid, [round], tetanus,bcg,measles,dpt,polio from peru
+			UNION ALL
+			select childid, [round], tetanus,bcg,measles,dpt,polio from india
+			UNION ALL
+			select childid, [round], tetanus,bcg,measles,dpt,polio from vietnam) a;
+
+		COMMIT TRANSACTION
+END
+Go
+
+exec create_child_vaccination_details;
+Go
+
+
+
+
+
+CREATE procedure create_medical_details  AS
+BEGIN
+		BEGIN TRANSACTION
+
+		CREATE TABLE medical_details(childid varchar(40),survey_round_id float, chweight float,chheight float,bmi float,underweight float,stunting float,thinness float,chhrel float,chhealth nvarchar(150), cladder nvarchar(150), PRIMARY KEY (childid,survey_round_id),FOREIGN KEY(childid) REFERENCES children_info(childid));
+
+
+		INSERT INTO medical_details select childid, [round], chweight, chheight, bmi, underweight, stunting, thinness, chhrel, chhealth, cladder from 
+
+			(select childid, [round], chweight, chheight, bmi, underweight, stunting, thinness, chhrel, chhealth, cladder from ethiopia 
+			UNION ALL
+			select childid, [round], chweight, chheight, bmi, underweight, stunting, thinness, chhrel, chhealth, cladder from peru
+			UNION ALL
+			select childid, [round], chweight, chheight, bmi, underweight, stunting, thinness, chhrel, chhealth, cladder from india
+			UNION ALL
+			select childid, [round], chweight, chheight, bmi, underweight, stunting, thinness, chhrel, chhealth, cladder from vietnam) a;
+
+		COMMIT TRANSACTION
+END
+Go
+
+
+exec create_medical_details;
+Go
+
+
+
+
+-- User defined function
+
+CREATE FUNCTION [dbo].[give_labels_udf](@val Float)
+RETURNS varchar(20)
+AS BEGIN
+    DECLARE @lab varchar(20)
+    SELECT @lab = CASE WHEN @val = 0 THEN 'No' WHEN @val = 1 THEN 'Yes' ELSE 'NA' END
+    RETURN @lab
+END
+GO
+
+
+
+-- Report1(Gives summary about the total number of children smoking in Younger and Older cohort)
+
+create view smoking_report as
+	select q1.Country, q1.cohort, count(*) as children_smoking from (select d.childid, d.chsmoke,ch.name as cohort ,
+	ci.name as Country from child_drug_details d
+	LEFT JOIN children_info cd on cd.childid=d.childid
+	LEFT JOIN cohort_info ch on ch.value=cd.cohort
+	LEFT JOIN country_info ci on ci.value=cd.country) q1 group by q1.Country, q1.cohort;
+
+
+select * from smoking_report;
+
+
+
+-- Report2(Gives summary about the total number of children Reading Capability in all the survey rounds)
+
+create view child_reading_report as 
+	select q.country, q.survey_round, q.ReadingCapability,  count(*) as count from 
+		(select ci.name as country, el.survey_round_id as survey_round, rf.name as ReadingCapability from eduLevel_info el
+		LEFT JOIN children_info ch on ch.childid=el.childid
+		LEFT JOIN readingLevel_info rf on rf.value=el.levlread
+		LEFT JOIN country_info ci on ci.value=ch.country where rf.name is not null)q
+		group by q.country, q.survey_round, q.ReadingCapability;
+
+
+select * from child_reading_report;
+
+
+-- Report3(Gives summary about the total number of children if they had polio vaccine or not)
+
+create view polio_report as 
+select cd.name as country, dbo.give_labels_udf(vd.polio) as polioStatus, count(*) as children_with_polio from children_info ci 
+LEFT JOIN child_vaccination_details vd ON ci.childid=vd.childid
+LEFT JOIN country_info cd on cd.value=ci.country
+where vd.polio is not null group by cd.name, vd.polio;
+
+
+select * from polio_report;
+
+
+ -- Report4(Gives summary about the total number of children about their underweight condition)
+
+create view child_underweight_report as 
+select q.country, q.underweight_Label, count(*) as [underweightChildren]  from 
+	(select isnull(ud.Label, 'NA') as underweight_Label, 
+	ci.name as country from medical_details md 
+	INNER JOIN children_info cd on cd.childid=md.childid 
+	LEFT JOIN underweight_details ud ON ud.Value = md.underweight
+	LEFT JOIN country_info ci ON ci.value = cd.country
+	)q group by q.underweight_Label, q.country;
+
+
+select * from child_underweight_report;
+
+
+-- Report5(Gives summary about the total number of children about their stunting condition in each survey round among younger and older cohort)
+
+create view child_stunting_report as 
+select q.country, q.cohort, q.survey_round_id, q.stuntingLabel,  count(*) as [Stunt_Children]  from 
+(select coi.name as cohort, md.survey_round_id, isnull(si.Label, 'NA') as stuntingLabel, 
+	co.name as country from medical_details md 
+	INNER JOIN children_info cd on cd.childid=md.childid 
+	LEFT JOIN stunting_info si ON si.Value = md.stunting
+	INNER JOIN survey_details sd on sd.childid = md.childid and sd.survey_round_id=md.survey_round_id
+	INNER JOIN cohort_info coi on coi.Value = sd.cohort
+	INNER JOIN country_info co ON co.value = cd.country)q group by q.cohort,q.survey_round_id, q.country, q.stuntingLabel;
+
+
+select * from child_stunting_report;
