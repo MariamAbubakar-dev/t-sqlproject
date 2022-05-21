@@ -37,9 +37,9 @@ __Note:__ Both 32-bit and 64-bit versions of Microsoft® SQL Server® 2014 Expre
 
 
 ### <ins>Using the Data and importing into the SQL Server:</ins>
-- [] Pull repo from into your desired location on your machine.
-- [] Launch SQL Server create a database connection
-- [] Import the csv files in the repo into the database using the __import and export wizard__
-- [] Copy the commands in the text file to test the database.
+- [ ] Pull repo from into your desired location on your machine.
+- [ ] Launch SQL Server create a database connection
+- [ ] Import the csv files in the repo into the database using the __import and export wizard__
+- [ ] Copy the commands in the text file to test the database.
 
 __NOTE:__ Change the database name in the query to the database name that you create.
